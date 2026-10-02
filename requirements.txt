@@ -5,3 +5,4 @@ imageio-ffmpeg
 opencv-python-headless<5
 numpy
 yt-dlp
+streamlit

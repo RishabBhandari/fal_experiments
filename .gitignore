@@ -11,3 +11,6 @@ assets/*.json
 __pycache__/
 *.pyc
 .venv/
+
+# Streamlit local secrets
+.streamlit/secrets.toml

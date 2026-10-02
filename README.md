@@ -36,3 +36,20 @@ lower the cost.
 **Quality.** A vision model (Claude Sonnet 5 via fal) describes the original performers' hair and eyewear and the new
 people's hair and face, and the prompt says exactly what to remove. Without that, Recast tended to keep the
 performers' dreadlocks and sunglasses. The prompt used is shown under the button after each run.
+
+## Deploy on Streamlit Community Cloud (free)
+
+`streamlit_app.py` is the same app built for Streamlit (`streamlit run streamlit_app.py` to try it locally).
+
+1. Go to https://share.streamlit.io and sign in with GitHub.
+2. **Create app** → **Deploy a public app from GitHub**: repo `RishabBhandari/fal_experiments`, branch `main`,
+   main file `streamlit_app.py`.
+3. **Advanced settings** → Python 3.12, and paste into **Secrets**:
+   ```toml
+   FAL_KEY = "your-fal-key"
+   APP_PASSWORD = "pick-a-password"
+   ```
+4. **Deploy.** The first build takes a few minutes.
+
+Without `APP_PASSWORD` anyone with the link can spend your fal credits. YouTube links may fail from Streamlit's
+servers (YouTube blocks many cloud IPs); X and direct .mp4 links usually work.
