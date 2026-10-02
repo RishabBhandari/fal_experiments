@@ -1,0 +1,7 @@
+flask
+fal-client
+python-dotenv
+imageio-ffmpeg
+opencv-python-headless<5
+numpy
+yt-dlp

@@ -1,0 +1,13 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# user uploads, downloaded videos, trimmed clips
+uploads/
+
+# generated caches
+assets/*.json
+__pycache__/
+*.pyc
+.venv/

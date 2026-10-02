@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 Max Recast Testing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff7ef; --card: #ffffff; --ink: #1d1a17; --muted: #7a6f66; --line: #ead9c8;
+    --accent: #ff6a1a; --accent-ink: #fff; --drop: #fff1e4; --err: #c0392b; --ok: #2e8b57;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17130f; --card: #221c17; --ink: #f6ece2; --muted: #a8998b; --line: #3a2f26;
+            --drop: #2b2219; --err: #ff7b6b; --ok: #6fd39b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 Inter, system-ui, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: clamp(28px, 6vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }
+  h1 span { color: var(--accent); }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .ref { width: 100%; border-radius: 14px; display: block; background: #000; aspect-ratio: 16/9; }
+
+  .people { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .person { border: 2px solid var(--line); border-radius: 14px; background: var(--card); padding: 12px;
+            outline: none; transition: border-color .15s; cursor: pointer; }
+  .person.active { border-color: var(--accent); }
+  .person.over { border-style: dashed; border-color: var(--accent); }
+  .person .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .person .tag { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+  .person .count { font-size: 12px; color: var(--muted); }
+  .thumbs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .thumb, .add { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button { position: absolute; right: 4px; top: 4px; border: 0; border-radius: 99px; width: 24px; height: 24px;
+                  background: rgba(0,0,0,.6); color: #fff; cursor: pointer; font-size: 14px; line-height: 1; }
+  .add { border: 2px dashed var(--line); background: var(--drop); display: flex; align-items: center;
+         justify-content: center; text-align: center; color: var(--muted); font-size: 13px; padding: 8px; }
+  .person.active .add { border-color: var(--accent); }
+  .add b { display: block; font-size: 22px; color: var(--accent); }
+
+  .portraits { display: none; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .portraits figure { margin: 0; }
+  .portraits img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 14px; display: block; background: var(--drop); }
+  .portraits figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .opts { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 4px 0 16px; }
+  .opts label { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  select, textarea { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line);
+                     border-radius: 10px; padding: 8px 10px; }
+  textarea { width: 100%; min-height: 60px; resize: vertical; }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button.go { border: 0; border-radius: 12px; padding: 14px; font: inherit; font-weight: 800; font-size: 17px;
+              background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button.go.secondary { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
+  button.go:disabled { opacity: .4; cursor: not-allowed; }
+  button.go small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
+  .status { margin-top: 16px; min-height: 24px; color: var(--muted); }
+  .status.err { color: var(--err); }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line);
+             border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite;
+             vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .result { display: none; margin-top: 20px; }
+  .result video { width: 100%; border-radius: 14px; background: #000; }
+  .result a { display: inline-block; margin-top: 10px; color: var(--accent); font-weight: 600; }
+  .vcard { border: 2px solid var(--line); border-radius: 14px; background: var(--card); padding: 12px; outline: none; }
+  .vcard.over { border-style: dashed; border-color: var(--accent); }
+  .vrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .vrow input { flex: 1 1 220px; min-width: 0; font: inherit; color: var(--ink); background: var(--bg);
+                border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  button.small { border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-weight: 600; font-size: 14px;
+                 background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button.small.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button.small:disabled { opacity: .4; cursor: not-allowed; }
+  .trim { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .trim input { width: 80px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+                border-radius: 8px; padding: 4px 8px; }
+  .vmsg { font-size: 14px; margin-top: 6px; color: var(--muted); min-height: 1.5em; }
+  .vmsg.err { color: var(--err); }
+  #promptUsed { white-space: pre-wrap; font-size: 13px; }
+  details { margin-bottom: 16px; color: var(--muted); font-size: 14px; }
+  summary { cursor: pointer; }
+  @media (max-width: 460px) { .people { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) {
+    .people, .portraits { gap: 10px; } .thumbs { gap: 6px; } .buttons { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>fal AI</span> MiniMax H3 Max Recast Testing</h1>
+  <p class="sub">Pick a video, add a few photos of two people. AI cleans them up, then fal Recast puts them in.</p>
+
+  <h2>1 · Video</h2>
+  <div class="vcard" id="vcard" tabindex="0">
+    <video class="ref" id="ref" controls playsinline muted></video>
+    <div class="vrow">
+      <input id="vurl" type="url" placeholder="Paste a video link (X, YouTube, TikTok, Instagram, .mp4…)">
+      <button class="small" id="vload">Load link</button>
+      <button class="small" id="vfileBtn">Upload file</button>
+      <button class="small ghost" id="vdefault">Default video</button>
+    </div>
+    <div class="trim">
+      <label>Start <input type="number" id="vstart" step="0.1" min="0"> s</label>
+      <label>End <input type="number" id="vend" step="0.1" min="0"> s</label>
+      <span id="vinfo"></span>
+    </div>
+    <div class="vmsg" id="vmsg"></div>
+  </div>
+  <input type="file" id="vpicker" accept="video/*" hidden>
+
+  <h2>2 · Photos</h2>
+  <div class="people">
+    <div class="person" data-side="left" tabindex="0">
+      <div class="head"><span class="tag">Left person</span><span class="count"></span></div>
+      <div class="thumbs"></div>
+    </div>
+    <div class="person" data-side="right" tabindex="0">
+      <div class="head"><span class="tag">Right person</span><span class="count"></span></div>
+      <div class="thumbs"></div>
+    </div>
+  </div>
+  <p class="vmsg">Put each person's clearest, front-facing photo first; extra angles (no hat) help with hair and profile shots.</p>
+  <input type="file" id="picker" accept="image/*" multiple hidden>
+
+  <h2 id="portraitsTitle" style="display:none">3 · Enhanced photos</h2>
+  <div class="portraits" id="portraits">
+    <figure><img id="pLeft" alt="Enhanced left person"><figcaption>Left person</figcaption></figure>
+    <figure><img id="pRight" alt="Enhanced right person"><figcaption>Right person</figcaption></figure>
+  </div>
+
+  <h2>Options</h2>
+  <div class="opts">
+    <label><input type="checkbox" id="useEnhance" checked> AI-enhance photos (sharpen, remove glasses &amp; hats)</label>
+    <label>Quality
+      <select id="res">
+        <option value="768P">768p · $0.30/s</option>
+        <option value="1080P">1080p · $0.45/s (sharper)</option>
+      </select>
+    </label>
+  </div>
+  <details>
+    <summary>Extra instructions for the video (optional)</summary>
+    <textarea id="prompt" placeholder="e.g. Keep their hats on."></textarea>
+  </details>
+
+  <div class="buttons">
+    <button class="go secondary" id="enhanceBtn" disabled>Enhance photos<small>~$0.30 · preview before the video</small></button>
+    <button class="go" id="go" disabled>Make the video<small id="goHint"></small></button>
+  </div>
+  <div class="status" id="status"></div>
+  <details id="promptBox" style="display:none">
+    <summary>Prompt sent to Recast</summary>
+    <p id="promptUsed"></p>
+  </details>
+
+  <div class="result" id="result">
+    <video id="out" controls loop playsinline></video>
+    <a id="dl" download="hotel-lobby.mp4" target="_blank">Download MP4</a>
+  </div>
+</main>
+
+<script>
+const MAX = 4;
+const photos = { left: [], right: [] };
+let portraits = null;   // {left, right} fal URLs once enhanced; cleared whenever photos change
+let active = 'left', busy = false;
+
+const $ = id => document.getElementById(id);
+const cards = [...document.querySelectorAll('.person')];
+const card = side => cards.find(c => c.dataset.side === side);
+const picker = $('picker');
+
+function setActive(side) { active = side; cards.forEach(c => c.classList.toggle('active', c.dataset.side === side)); }
+
+function render() {
+  for (const side of ['left', 'right']) {
+    const c = card(side), box = c.querySelector('.thumbs');
+    box.innerHTML = '';
+    photos[side].forEach((f, i) => {
+      const t = document.createElement('div'); t.className = 'thumb';
+      const img = document.createElement('img'); img.src = f.preview;
+      const x = document.createElement('button'); x.textContent = '×'; x.title = 'Remove';
+      x.onclick = e => { e.stopPropagation(); photos[side].splice(i, 1); changed(); };
+      t.append(img, x); box.append(t);
+    });
+    if (photos[side].length < MAX) {
+      const a = document.createElement('div'); a.className = 'add';
+      a.innerHTML = photos[side].length
+        ? '<div><b>+</b>Add another angle</div>'
+        : '<div><b>+</b>Click, then Ctrl+V<br>or drop / choose photos</div>';
+      box.append(a);
+    }
+    c.querySelector('.count').textContent = `${photos[side].length}/${MAX} photos`;
+  }
+  const ready = photos.left.length && photos.right.length;
+  const enh = $('useEnhance').checked;
+  const problem = videoProblem();
+  $('enhanceBtn').disabled = busy || !ready || !enh;
+  $('go').disabled = busy || !ready || !!problem || vbusy;
+  const len = video ? Math.max(0, +$('vend').value - +$('vstart').value) : 0;
+  const cost = len * ($('res').value === '1080P' ? 0.45 : 0.30) + (enh && !portraits ? 0.30 : 0);
+  $('goHint').textContent = `${len.toFixed(1)} s · ~$${cost.toFixed(2)}` + (enh && !portraits ? ' incl. enhancing' : '');
+  if (video && !vbusy) {
+    $('vmsg').className = 'vmsg' + (problem ? ' err' : '');
+    $('vmsg').textContent = problem || 'Recast uses only the part between Start and End (5–30 s, no shot over 15 s).';
+  }
+  const show = enh && portraits;
+  $('portraitsTitle').style.display = show ? '' : 'none';
+  $('portraits').style.display = show ? 'grid' : 'none';
+}
+
+function changed() { portraits = null; render(); }
+
+function addFiles(side, files) {
+  files = files.filter(f => f && f.type.startsWith('image/'));
+  for (const f of files) {
+    if (photos[side].length >= MAX) break;
+    f.preview = URL.createObjectURL(f);
+    photos[side].push(f);
+  }
+  // once this person has a photo and the other has none, point the next paste at the other person
+  const other = side === 'left' ? 'right' : 'left';
+  if (files.length && !photos[other].length) setActive(other);
+  changed();
+}
+
+cards.forEach(c => {
+  const side = c.dataset.side;
+  c.addEventListener('focus', () => setActive(side));
+  c.addEventListener('click', e => { setActive(side); if (e.target.closest('.add')) picker.click(); });
+  c.addEventListener('dragover', e => { e.preventDefault(); c.classList.add('over'); });
+  c.addEventListener('dragleave', () => c.classList.remove('over'));
+  c.addEventListener('drop', e => { e.preventDefault(); c.classList.remove('over'); addFiles(side, [...e.dataTransfer.files]); });
+});
+picker.addEventListener('change', () => { addFiles(active, [...picker.files]); picker.value = ''; });
+document.addEventListener('paste', e => {
+  if (e.target.tagName === 'TEXTAREA') return;
+  const items = [...e.clipboardData.items];
+  const vfile = items.find(i => i.kind === 'file' && i.type.startsWith('video/'));
+  if (vfile) { e.preventDefault(); loadVideo({ file: vfile.getAsFile() }); return; }
+  const files = items.filter(i => i.type.startsWith('image/')).map(i => i.getAsFile());
+  if (files.length) { e.preventDefault(); addFiles(active, files); return; }
+  // a pasted link anywhere outside a text field loads it as the video
+  const text = e.clipboardData.getData('text').trim();
+  if (e.target.tagName !== 'INPUT' && /^https?:\/\/\S+$/.test(text)) { e.preventDefault(); $('vurl').value = text; loadVideo({ url: text }); }
+});
+$('useEnhance').addEventListener('change', render);
+$('res').addEventListener('change', render);
+
+// ---------- video ----------
+const MIN_LEN = 5, MAX_LEN = 30, MAX_SHOT = 14.8;
+let video = null, vbusy = false;   // video: {id, src, name, duration, cuts, start, end}
+const ref = $('ref');
+
+function videoProblem() {
+  if (!video) return 'Loading video…';
+  const s = +$('vstart').value, e = +$('vend').value, len = e - s;
+  if (s < 0 || e > video.duration + 0.05) return 'The selection is outside the video.';
+  if (len < MIN_LEN) return `The selection must be at least ${MIN_LEN} s.`;
+  if (len > MAX_LEN + 0.05) return `The selection must be at most ${MAX_LEN} s.`;
+  const edges = [s, ...video.cuts.filter(c => c > s && c < e), e];
+  const longest = Math.max(...edges.slice(1).map((b, i) => b - edges[i]));
+  if (longest > MAX_SHOT) return `One shot in the selection is ${longest.toFixed(1)} s; Recast allows at most 15 s per shot. Move Start or End.`;
+  return null;
+}
+
+function setVideo(v) {
+  video = v;
+  ref.src = v.src + '?t=' + Date.now();
+  $('vstart').value = v.start; $('vend').value = v.end;
+  $('vstart').max = $('vend').max = v.duration;
+  $('vinfo').textContent = `${v.name} · ${v.duration.toFixed(1)} s total · ${v.cuts.length + 1} shot${v.cuts.length ? 's' : ''}`;
+  ref.addEventListener('loadedmetadata', () => { ref.currentTime = v.start; }, { once: true });
+  render();
+}
+
+async function loadVideo({ file, url, def }) {
+  if (vbusy) return;
+  vbusy = true; render();
+  $('vmsg').className = 'vmsg';
+  $('vmsg').innerHTML = '<span class="spinner"></span>' + (url ? 'Downloading and preparing the video…' : 'Preparing the video…');
+  ['vload', 'vfileBtn', 'vdefault'].forEach(id => $(id).disabled = true);
+  try {
+    let r;
+    if (def) r = await fetch('/api/video/default');
+    else {
+      const fd = new FormData();
+      if (file) fd.append('video', file, file.name || 'video.mp4'); else fd.append('url', url);
+      r = await fetch('/api/video', { method: 'POST', body: fd });
+    }
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Couldn\'t load that video');
+    vbusy = false;
+    setVideo(j);
+  } catch (e) {
+    vbusy = false;
+    $('vmsg').className = 'vmsg err'; $('vmsg').textContent = e.message;
+  }
+  ['vload', 'vfileBtn', 'vdefault'].forEach(id => $(id).disabled = false);
+  render();
+}
+
+// preview plays only the selected part, on loop
+ref.addEventListener('timeupdate', () => {
+  if (!video) return;
+  const s = +$('vstart').value, e = +$('vend').value;
+  if (ref.currentTime > e || ref.currentTime < s - 0.3) ref.currentTime = s;
+});
+['vstart', 'vend'].forEach(id => $(id).addEventListener('input', () => { ref.currentTime = +$('vstart').value; render(); }));
+$('vload').addEventListener('click', () => { const u = $('vurl').value.trim(); if (u) loadVideo({ url: u }); });
+$('vurl').addEventListener('keydown', e => { if (e.key === 'Enter') $('vload').click(); });
+$('vfileBtn').addEventListener('click', () => $('vpicker').click());
+$('vpicker').addEventListener('change', () => { if ($('vpicker').files[0]) loadVideo({ file: $('vpicker').files[0] }); $('vpicker').value = ''; });
+$('vdefault').addEventListener('click', () => loadVideo({ def: true }));
+const vcard = $('vcard');
+vcard.addEventListener('dragover', e => { e.preventDefault(); vcard.classList.add('over'); });
+vcard.addEventListener('dragleave', () => vcard.classList.remove('over'));
+vcard.addEventListener('drop', e => {
+  e.preventDefault(); vcard.classList.remove('over');
+  const f = [...e.dataTransfer.files].find(f => f.type.startsWith('video/'));
+  const u = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text');
+  if (f) loadVideo({ file: f }); else if (/^https?:\/\//.test(u)) loadVideo({ url: u.trim() });
+});
+
+function say(msg, err = false, spin = false) {
+  $('status').className = 'status' + (err ? ' err' : '');
+  $('status').innerHTML = (spin ? '<span class="spinner"></span>' : '') + msg;
+}
+
+function photoForm() {
+  const fd = new FormData();
+  for (const side of ['left', 'right']) photos[side].forEach((f, i) => fd.append(side, f, f.name || `${side}${i}.png`));
+  return fd;
+}
+
+async function runEnhance() {
+  say('Enhancing photos (sharpening, merging angles, removing glasses)…', false, true);
+  const r = await fetch('/api/enhance', { method: 'POST', body: photoForm() });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'Enhance failed');
+  portraits = j;
+  $('pLeft').src = j.left; $('pRight').src = j.right;
+  render();
+}
+
+async function guarded(fn) {
+  busy = true; render();
+  try { await fn(); } catch (e) { say(e.message, true); }
+  busy = false; render();
+}
+
+$('enhanceBtn').addEventListener('click', () => guarded(async () => {
+  await runEnhance();
+  say('Portraits ready. Click “Enhance photos” again to redo them, or “Make the video”.');
+}));
+
+$('go').addEventListener('click', () => guarded(async () => {
+  $('result').style.display = 'none';
+  const enh = $('useEnhance').checked;
+  if (enh && !portraits) await runEnhance();
+  say('Starting the video…', false, true);
+  const fd = enh ? new FormData() : photoForm();
+  if (enh) { fd.append('left_url', portraits.left); fd.append('right_url', portraits.right); }
+  fd.append('resolution', $('res').value);
+  fd.append('video_id', video.id);
+  fd.append('start', $('vstart').value);
+  fd.append('end', $('vend').value);
+  say('Analyzing the video and photos, then starting Recast…', false, true);
+  fd.append('prompt', $('prompt').value);
+  const r = await fetch('/api/generate', { method: 'POST', body: fd });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'Request failed');
+  $('promptUsed').textContent = j.prompt || '';
+  $('promptBox').style.display = j.prompt ? '' : 'none';
+  await poll(j.id);
+}));
+
+async function poll(id) {
+  const t0 = Date.now();
+  while (true) {
+    const j = await (await fetch('/api/status/' + id)).json();
+    const secs = Math.round((Date.now() - t0) / 1000);
+    if (j.state === 'done') {
+      say('Done! 🎉');
+      $('out').src = j.video; $('dl').href = j.video;
+      $('result').style.display = 'block';
+      $('out').play().catch(() => {});
+      return;
+    }
+    if (j.state === 'error') throw new Error(j.error || 'Generation failed');
+    say(j.state === 'queued' ? `Waiting in line${j.position != null ? ' (#' + (j.position + 1) + ')' : ''}… ${secs}s`
+                             : `Recasting the lobby… ${secs}s (usually a few minutes)`, false, true);
+    await new Promise(r => setTimeout(r, 4000));
+  }
+}
+
+setActive('left');
+render();
+loadVideo({ def: true });
+</script>
+</body>
+</html>
